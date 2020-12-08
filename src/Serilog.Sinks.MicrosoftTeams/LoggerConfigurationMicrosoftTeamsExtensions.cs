@@ -10,6 +10,7 @@
 namespace Serilog
 {
     using System;
+    using System.Collections.Generic;
 
     using Serilog.Configuration;
     using Serilog.Events;
@@ -18,6 +19,7 @@ namespace Serilog
     /// <summary>
     /// Provides extension methods on <see cref="LoggerSinkConfiguration"/>.
     /// </summary>
+    // ReSharper disable once InconsistentNaming
     public static class LoggerConfigurationMicrosoftTeamsExtensions
     {
         /// <summary>
@@ -36,24 +38,42 @@ namespace Serilog
         /// not provided i.e. no batching by default.</param>
         /// <param name="period">The time to wait between checking for event batches; defaults to 1 sec if not
         /// provided.</param>
+        /// <param name="outputTemplate">The output template.</param>
         /// <param name="formatProvider">The format provider used for formatting the message.</param>
         /// <param name="restrictedToMinimumLevel"><see cref="LogEventLevel"/> value that specifies minimum logging
         /// level that will be allowed to be logged.</param>
         /// <param name = "proxy" > The proxy address to use.</param>
         /// <param name="omitPropertiesSection">Indicates whether the properties section should be omitted or not.</param>
+        /// <param name="buttons">The buttons to add to a message.</param>
+        /// <param name="failureCallback">The failure callback.</param>
         /// <returns>Instance of <see cref="LoggerConfiguration"/> object.</returns>
+        // ReSharper disable once InconsistentNaming
         public static LoggerConfiguration MicrosoftTeams(
             this LoggerSinkConfiguration loggerSinkConfiguration,
             string webHookUri,
             string title = null,
             int? batchSizeLimit = null,
             TimeSpan? period = null,
+            string outputTemplate = null,
             IFormatProvider formatProvider = null,
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             string proxy = null,
-            bool omitPropertiesSection = false)
+            bool omitPropertiesSection = false,
+            IEnumerable<MicrosoftTeamsSinkOptionsButton> buttons = null,
+            Action<Exception> failureCallback = null)
         {
-            var microsoftTeamsSinkOptions = new MicrosoftTeamsSinkOptions(webHookUri, title, batchSizeLimit, period, formatProvider, restrictedToMinimumLevel, omitPropertiesSection, proxy);
+            var microsoftTeamsSinkOptions = new MicrosoftTeamsSinkOptions(
+                webHookUri,
+                title,
+                batchSizeLimit,
+                period,
+                outputTemplate,
+                formatProvider,
+                restrictedToMinimumLevel,
+                omitPropertiesSection,
+                proxy,
+                buttons,
+                failureCallback);
             return loggerSinkConfiguration.MicrosoftTeams(microsoftTeamsSinkOptions, restrictedToMinimumLevel);
         }
 
@@ -65,6 +85,7 @@ namespace Serilog
         /// <param name="restrictedToMinimumLevel"><see cref="LogEventLevel"/> value that specifies minimum logging
         /// level that will be allowed to be logged.</param>
         /// <returns>Instance of <see cref="LoggerConfiguration"/> object.</returns>
+        // ReSharper disable once InconsistentNaming
         public static LoggerConfiguration MicrosoftTeams(
             this LoggerSinkConfiguration loggerSinkConfiguration,
             MicrosoftTeamsSinkOptions microsoftTeamsSinkOptions,

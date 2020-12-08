@@ -10,6 +10,7 @@
 namespace Serilog.Sinks.MicrosoftTeams
 {
     using System;
+    using System.Collections.Generic;
 
     using Serilog.Events;
 
@@ -37,11 +38,25 @@ namespace Serilog.Sinks.MicrosoftTeams
         /// not provided i.e. no batching by default.</param>
         /// <param name="period">The time to wait between checking for event batches; defaults to 1 sec if not
         /// provided.</param>
+        /// <param name="outputTemplate">The output template.</param>
         /// <param name="formatProvider">The format provider used for formatting the message.</param>
         /// <param name="minimumLogEventLevel">The minimum log event level to use.</param>
         /// <param name="omitPropertiesSection">Indicates whether the properties section should be omitted or not.</param>
         /// <param name="proxy">The proxy address to use.</param>
-        public MicrosoftTeamsSinkOptions(string webHookUri, string title, int? batchSizeLimit = null, TimeSpan? period = null, IFormatProvider formatProvider = null, LogEventLevel minimumLogEventLevel = LogEventLevel.Verbose, bool omitPropertiesSection = false, string proxy = null)
+        /// <param name="buttons">The buttons to add to a message.</param>
+        /// <param name="failureCallback">The failure callback.</param>
+        public MicrosoftTeamsSinkOptions(
+            string webHookUri,
+            string title,
+            int? batchSizeLimit = null,
+            TimeSpan? period = null,
+            string outputTemplate = null,
+            IFormatProvider formatProvider = null,
+            LogEventLevel minimumLogEventLevel = LogEventLevel.Verbose,
+            bool omitPropertiesSection = false,
+            string proxy = null,
+            IEnumerable<MicrosoftTeamsSinkOptionsButton> buttons = null,
+            Action<Exception> failureCallback = null)
         {
             if (webHookUri == null)
             {
@@ -57,10 +72,13 @@ namespace Serilog.Sinks.MicrosoftTeams
             this.Title = title;
             this.BatchSizeLimit = batchSizeLimit ?? DefaultBatchSizeLimit;
             this.Period = period ?? DefaultPeriod;
+            this.OutputTemplate = outputTemplate;
             this.FormatProvider = formatProvider;
             this.MinimumLogEventLevel = minimumLogEventLevel;
             this.OmitPropertiesSection = omitPropertiesSection;
             this.Proxy = proxy;
+            this.Buttons = buttons ?? new List<MicrosoftTeamsSinkOptionsButton>();
+            this.FailureCallback = failureCallback;
         }
 
         /// <summary>
@@ -84,6 +102,11 @@ namespace Serilog.Sinks.MicrosoftTeams
         public TimeSpan Period { get; }
 
         /// <summary>
+        /// Gets the output template.
+        /// </summary>
+        public string OutputTemplate { get; }
+
+        /// <summary>
         /// Gets the format provider used for formatting the message.
         /// </summary>
         public IFormatProvider FormatProvider { get; }
@@ -102,5 +125,15 @@ namespace Serilog.Sinks.MicrosoftTeams
         /// Gets the proxy URL.
         /// </summary>
         public string Proxy { get; }
+
+        /// <summary>
+        /// Gets the buttons to add to a message.
+        /// </summary>
+        public IEnumerable<MicrosoftTeamsSinkOptionsButton> Buttons { get; }
+
+        /// <summary>
+        /// Gets the failure callback.
+        /// </summary>
+        public Action<Exception> FailureCallback { get; }
     }
 }

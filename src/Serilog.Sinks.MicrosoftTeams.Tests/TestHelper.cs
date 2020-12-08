@@ -26,7 +26,8 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
     /// <summary>
     /// A helper class for the tests.
     /// </summary>
-    internal static class TestHelper
+    // ReSharper disable once InconsistentNaming
+    public static class TestHelper
     {
         /// <summary>
         /// The test web hook URL.
@@ -65,6 +66,21 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
                 .WriteTo.MicrosoftTeams(new MicrosoftTeamsSinkOptions(TestWebHook, "Integration Tests", omitPropertiesSection: omitPropertiesSection))
+                .CreateLogger();
+
+            return logger;
+        }
+
+        /// <summary>
+        /// Creates the logger with buttons..
+        /// </summary>
+        /// <param name="buttons">´The buttons to output</param>
+        /// <returns>An <see cref="ILogger"/>.</returns>
+        public static ILogger CreateLoggerWithButtons(IEnumerable<MicrosoftTeamsSinkOptionsButton> buttons)
+        {
+            var logger = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.MicrosoftTeams(new MicrosoftTeamsSinkOptions(TestWebHook, "Integration Tests", buttons: buttons, omitPropertiesSection: true))
                 .CreateLogger();
 
             return logger;
@@ -115,10 +131,10 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
         /// <param name="logEventLevel">The log event level.</param>
         /// <param name="color">The color.</param>
         /// <param name="counter">The counter.</param>
-        /// <param name="occuredOn">The occured on date.</param>
+        /// <param name="occurredOn">The occurred on date.</param>
         /// <returns>A <see cref="JObject"/> from the message.</returns>
         public static JObject CreateMessage(string template, string renderedMessage, LogEventLevel logEventLevel,
-            string color, int counter, string occuredOn)
+            string color, int counter, string occurredOn)
         {
             return new JObject
             {
@@ -151,8 +167,8 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
                             },
                             new JObject
                             {
-                                ["name"] = "Occured on",
-                                ["value"] = occuredOn
+                                ["name"] = "Occurred on",
+                                ["value"] = occurredOn
                             }
                         }
                     }
@@ -160,6 +176,12 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
             };
         }
 
+        /// <summary>
+        /// Creates a message.
+        /// </summary>
+        /// <param name="renderedMessage">The rendered message.</param>
+        /// <param name="color">The color.</param>
+        /// <returns>A new <see cref="JObject"/> representing the message.</returns>
         public static JObject CreateMessage(string renderedMessage, string color)
         {
             return new JObject
@@ -169,6 +191,45 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
                 ["title"] = "Integration Tests",
                 ["text"] = renderedMessage,
                 ["themeColor"] = color
+            };
+        }
+
+        /// <summary>
+        /// Creates a message with buttons.
+        /// </summary>
+        /// <param name="renderedMessage">The rendered message.</param>
+        /// <param name="color">The color.</param>
+        /// <param name="buttons">The buttons.</param>
+        /// <returns>A new <see cref="JObject"/> representing the message.</returns>
+        public static JObject CreateMessageWithButton(string renderedMessage, string color, IEnumerable<MicrosoftTeamsSinkOptionsButton> buttons)
+        {
+            var potentialAction = new JArray();
+            foreach (var microsoftTeamsSinkOptionsButton in buttons)
+            {
+                var b = new JObject
+                {
+                    ["@type"] = "OpenUri",
+                    ["name"] = microsoftTeamsSinkOptionsButton.Name,
+                    ["targets"] = new JArray
+                    {
+                        new JObject
+                        {
+                            ["uri"] = microsoftTeamsSinkOptionsButton.Uri,
+                            ["os"] = "default"
+                        }
+                    }
+                };
+                potentialAction.Add(b);
+            }
+
+            return new JObject
+            {
+                ["@type"] = "MessageCard",
+                ["@context"] = "http://schema.org/extensions",
+                ["title"] = "Integration Tests",
+                ["text"] = renderedMessage,
+                ["themeColor"] = color,
+                ["potentialAction"] = potentialAction
             };
         }
     }

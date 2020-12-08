@@ -9,8 +9,10 @@
 
 namespace Serilog.Sinks.MicrosoftTeams
 {
+    using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
+    using System.IO;
     using System.Linq;
     using System.Net;
     using System.Net.Http;
@@ -21,6 +23,7 @@ namespace Serilog.Sinks.MicrosoftTeams
 
     using Serilog.Debugging;
     using Serilog.Events;
+    using Serilog.Formatting.Display;
     using Serilog.Sinks.PeriodicBatching;
 
     /// <summary>
@@ -83,52 +86,8 @@ namespace Serilog.Sinks.MicrosoftTeams
         /// </remarks>
         protected override async Task EmitBatchAsync(IEnumerable<LogEvent> events)
         {
-            var messagesToSend = new List<ExtendedLogEvent>();
-
-            foreach (var logEvent in events)
-            {
-                if (logEvent.Level < this.options.MinimumLogEventLevel)
-                {
-                    continue;
-                }
-
-                var foundSameLogEvent = messagesToSend.Where(m => m.LogEvent?.Exception?.Message != null).FirstOrDefault(l => l.LogEvent.Exception.Message == logEvent.Exception.Message);
-
-                if (foundSameLogEvent == null)
-                {
-                    messagesToSend.Add(
-                        new ExtendedLogEvent
-                        {
-                            LogEvent = logEvent,
-                            FirstOccurrence = logEvent.Timestamp,
-                            LastOccurrence = logEvent.Timestamp
-                        });
-                }
-                else
-                {
-                    if (foundSameLogEvent.FirstOccurrence > logEvent.Timestamp)
-                    {
-                        foundSameLogEvent.FirstOccurrence = logEvent.Timestamp;
-                    }
-                    else if (foundSameLogEvent.LastOccurrence < logEvent.Timestamp)
-                    {
-                        foundSameLogEvent.LastOccurrence = logEvent.Timestamp;
-                    }
-                }
-            }
-
-            // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
-            foreach (var logEvent in messagesToSend)
-            {
-                var message = this.CreateMessage(logEvent);
-                var json = JsonConvert.SerializeObject(message, JsonSerializerSettings);
-                var result = await this.client.PostAsync(this.options.WebHookUri, new StringContent(json, Encoding.UTF8, "application/json")).ConfigureAwait(false);
-
-                if (!result.IsSuccessStatusCode)
-                {
-                    throw new LoggingFailedException($"Received failed result {result.StatusCode} when posting events to Microsoft Teams");
-                }
-            }
+            var messages = this.GetMessagesToSend(events);
+            await this.PostMessages(messages);
         }
 
         /// <summary>
@@ -154,17 +113,90 @@ namespace Serilog.Sinks.MicrosoftTeams
             switch (level)
             {
                 case LogEventLevel.Information:
-                    return "5bc0de";
+                    return MicrosoftTeamsColors.Information;
 
                 case LogEventLevel.Warning:
-                    return "f0ad4e";
+                    return MicrosoftTeamsColors.Warning;
 
                 case LogEventLevel.Error:
                 case LogEventLevel.Fatal:
-                    return "d9534f";
+                    return MicrosoftTeamsColors.Error;
 
                 default:
-                    return "777777";
+                    return MicrosoftTeamsColors.Default;
+            }
+        }
+
+        /// <summary>
+        /// Gets the messages to send and groups them.
+        /// </summary>
+        /// <param name="events">The log events.</param>
+        /// <returns>A <see cref="List{T}"/> of <see cref="MicrosoftExtendedLogEvent"/>.</returns>
+        private IEnumerable<MicrosoftExtendedLogEvent> GetMessagesToSend(IEnumerable<LogEvent> events)
+        {
+            var messagesToSend = new List<MicrosoftExtendedLogEvent>();
+
+            foreach (var logEvent in events)
+            {
+                if (logEvent.Level < this.options.MinimumLogEventLevel)
+                {
+                    continue;
+                }
+
+                var foundSameLogEvent = messagesToSend.Where(m => m.LogEvent?.Exception?.Message != null).FirstOrDefault(l => l.LogEvent.Exception.Message == logEvent.Exception.Message);
+
+                if (foundSameLogEvent == null)
+                {
+                    messagesToSend.Add(
+                        new MicrosoftExtendedLogEvent
+                        {
+                            LogEvent = logEvent,
+                            FirstOccurrence = logEvent.Timestamp,
+                            LastOccurrence = logEvent.Timestamp
+                        });
+                }
+                else
+                {
+                    if (foundSameLogEvent.FirstOccurrence > logEvent.Timestamp)
+                    {
+                        foundSameLogEvent.FirstOccurrence = logEvent.Timestamp;
+                    }
+                    else if (foundSameLogEvent.LastOccurrence < logEvent.Timestamp)
+                    {
+                        foundSameLogEvent.LastOccurrence = logEvent.Timestamp;
+                    }
+                }
+            }
+
+            return messagesToSend;
+        }
+
+        /// <summary>
+        /// Posts the messages.
+        /// </summary>
+        /// <param name="messages">The messages.</param>
+        /// <returns>A <see cref="Task"/> representing any asynchronous operation.</returns>
+        private async Task PostMessages(IEnumerable<MicrosoftExtendedLogEvent> messages)
+        {
+            // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
+            foreach (var logEvent in messages)
+            {
+                try
+                {
+                    var message = this.CreateMessage(logEvent);
+                    var json = JsonConvert.SerializeObject(message, JsonSerializerSettings);
+                    var result = await this.client.PostAsync(this.options.WebHookUri, new StringContent(json, Encoding.UTF8, "application/json")).ConfigureAwait(false);
+
+                    if (!result.IsSuccessStatusCode)
+                    {
+                        throw new LoggingFailedException($"Received failed result {result.StatusCode} when posting events to Microsoft Teams.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    SelfLog.WriteLine($"{ex.Message}, {ex.StackTrace}");
+                    this.options.FailureCallback?.Invoke(ex);
+                }
             }
         }
 
@@ -173,9 +205,21 @@ namespace Serilog.Sinks.MicrosoftTeams
         /// </summary>
         /// <param name="logEvent">The log event.</param>
         /// <returns>A message card.</returns>
-        private MicrosoftTeamsMessageCard CreateMessage(ExtendedLogEvent logEvent)
+        private MicrosoftTeamsMessageCard CreateMessage(MicrosoftExtendedLogEvent logEvent)
         {
-            var renderedMessage = logEvent.LogEvent.RenderMessage(this.options.FormatProvider);
+            string renderedMessage;
+
+            if (string.IsNullOrWhiteSpace(this.options.OutputTemplate))
+            {
+                renderedMessage = logEvent.LogEvent.RenderMessage(this.options.FormatProvider);
+            }
+            else
+            {
+                var formatter = new MessageTemplateTextFormatter(this.options.OutputTemplate, this.options.FormatProvider);
+                var stringWriter = new StringWriter();
+                formatter.Format(logEvent.LogEvent, stringWriter);
+                renderedMessage = stringWriter.ToString();
+            }
 
             var request = new MicrosoftTeamsMessageCard
             {
@@ -189,9 +233,18 @@ namespace Serilog.Sinks.MicrosoftTeams
                         Title = "Properties",
                         Facts = this.GetFacts(logEvent).ToArray()
                     }
-                }
+                },
+                PotentialActions = null
             };
 
+            // Add static URL buttons from the options
+            if (this.options.Buttons.IsNullOrEmpty())
+            {
+                return request;
+            }
+
+            request.PotentialActions = new List<MicrosoftTeamsMessageAction>();
+            this.options.Buttons.ToList().ForEach(btn => request.PotentialActions.Add(new MicrosoftTeamsMessageAction("OpenUri", btn.Name, new MicrosoftTeamsMessageActionTargetUri(btn.Uri))));
             return request;
         }
 
@@ -200,7 +253,7 @@ namespace Serilog.Sinks.MicrosoftTeams
         /// </summary>
         /// <param name="logEvent">The log event.</param>
         /// <returns>A list of facts.</returns>
-        private IEnumerable<MicrosoftTeamsMessageFact> GetFacts(ExtendedLogEvent logEvent)
+        private IEnumerable<MicrosoftTeamsMessageFact> GetFacts(MicrosoftExtendedLogEvent logEvent)
         {
             yield return new MicrosoftTeamsMessageFact
             {
@@ -246,7 +299,7 @@ namespace Serilog.Sinks.MicrosoftTeams
             {
                 yield return new MicrosoftTeamsMessageFact
                 {
-                    Name = "Occured on",
+                    Name = "Occurred on",
                     Value = logEvent.FirstOccurrence.ToString("dd.MM.yyyy HH:mm:sszzz", this.options.FormatProvider)
                 };
             }
