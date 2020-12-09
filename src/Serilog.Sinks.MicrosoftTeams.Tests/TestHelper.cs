@@ -18,9 +18,8 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
 
     using Microsoft.Net.Http.Server;
 
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
-
+    using System.Text.Json;
+    
     using Serilog.Events;
 
     /// <summary>
@@ -91,12 +90,12 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
         /// </summary>
         /// <param name="count">The counter variable.</param>
         /// <returns>A <see cref="Task"/> representing any asynchronous operation.</returns>
-        public static async Task<IList<JObject>> CaptureRequestsAsync(int count)
+        public static async Task<IList<JsonElement>> CaptureRequestsAsync(int count)
         {
             var settings = new WebListenerSettings();
             settings.UrlPrefixes.Add(TestWebHook);
 
-            var result = new List<JObject>();
+            var result = new List<JsonElement>();
             using var listener = new WebListener(settings);
             listener.Start();
 
@@ -116,11 +115,11 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
         /// </summary>
         /// <param name="stream">The body stream.</param>
         /// <returns>A <see cref="JObject"/> from the body stream.</returns>
-        private static JObject ReadBodyStream(Stream stream)
+        private static JsonElement ReadBodyStream(Stream stream)
         {
             using var reader = new StreamReader(stream, Encoding.UTF8);
             var json = reader.ReadToEnd();
-            return JsonConvert.DeserializeObject<JObject>(json);
+            return JsonSerializer.Deserialize<JsonElement>(json);
         }
 
         /// <summary>
@@ -133,47 +132,47 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
         /// <param name="counter">The counter.</param>
         /// <param name="occurredOn">The occurred on date.</param>
         /// <returns>A <see cref="JObject"/> from the message.</returns>
-        public static JObject CreateMessage(string template, string renderedMessage, LogEventLevel logEventLevel,
+        public static string CreateMessage(string template, string renderedMessage, LogEventLevel logEventLevel,
             string color, int counter, string occurredOn)
         {
-            return new JObject
+            using (MemoryStream ms = new MemoryStream())
             {
-                ["@type"] = "MessageCard",
-                ["@context"] = "http://schema.org/extensions",
-                ["title"] = "Integration Tests",
-                ["text"] = renderedMessage,
-                ["themeColor"] = color,
-                ["sections"] = new JArray
+                using (Utf8JsonWriter writer = new Utf8JsonWriter(ms))
                 {
-                    new JObject
-                    {
-                        ["title"] = "Properties",
-                        ["facts"] = new JArray
-                        {
-                            new JObject
-                            {
-                                ["name"] = "Level",
-                                ["value"] = logEventLevel.ToString()
-                            },
-                            new JObject
-                            {
-                                ["name"] = "MessageTemplate",
-                                ["value"] = template
-                            },
-                            new JObject
-                            {
-                                ["name"] = "counter",
-                                ["value"] = counter
-                            },
-                            new JObject
-                            {
-                                ["name"] = "Occurred on",
-                                ["value"] = occurredOn
-                            }
-                        }
-                    }
+
+                    writer.WriteStartObject();
+                    writer.WriteString("@type", "MessageCard");
+                    writer.WriteString("@context", "http://schema.org/extensions");
+                    writer.WriteString("title", "Integration Tests");
+                    writer.WriteString("text", renderedMessage);
+                    writer.WriteString("themeColor", color);
+                    writer.WriteStartArray("sections");
+                    writer.WriteStartObject();
+                    writer.WriteString("title", "Properties");
+                    writer.WriteStartArray("facts");
+                    writer.WriteStartObject();
+                    writer.WriteString("name", "Level");
+                    writer.WriteString("value", logEventLevel.ToString());
+                    writer.WriteEndObject();
+                    writer.WriteStartObject();
+                    writer.WriteString("name", "MessageTemplate");
+                    writer.WriteString("value", template);
+                    writer.WriteEndObject();
+                    writer.WriteStartObject();
+                    writer.WriteString("name", "counter");
+                    writer.WriteString("value", counter.ToString());
+                    writer.WriteEndObject();
+                    writer.WriteStartObject();
+                    writer.WriteString("name", "Occurred on");
+                    writer.WriteString("value", occurredOn);
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();  // end facts
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();  // end sections
+                    writer.WriteEndObject();
                 }
-            };
+                return Encoding.UTF8.GetString(ms.ToArray());
+            }
         }
 
         /// <summary>
@@ -182,16 +181,22 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
         /// <param name="renderedMessage">The rendered message.</param>
         /// <param name="color">The color.</param>
         /// <returns>A new <see cref="JObject"/> representing the message.</returns>
-        public static JObject CreateMessage(string renderedMessage, string color)
+        public static string CreateMessage(string renderedMessage, string color)
         {
-            return new JObject
+            using (MemoryStream ms = new MemoryStream())
             {
-                ["@type"] = "MessageCard",
-                ["@context"] = "http://schema.org/extensions",
-                ["title"] = "Integration Tests",
-                ["text"] = renderedMessage,
-                ["themeColor"] = color
-            };
+                using (Utf8JsonWriter writer = new Utf8JsonWriter(ms))
+                {
+                    writer.WriteStartObject();
+                    writer.WriteString("@type", "MessageCard");
+                    writer.WriteString("@context", "http://schema.org/extensions");
+                    writer.WriteString("title", "Integration Tests");
+                    writer.WriteString("text", renderedMessage);
+                    writer.WriteString("themeColor", color);
+                    writer.WriteEndObject();
+                }
+                return Encoding.UTF8.GetString(ms.ToArray());
+            }
         }
 
         /// <summary>
@@ -201,36 +206,37 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
         /// <param name="color">The color.</param>
         /// <param name="buttons">The buttons.</param>
         /// <returns>A new <see cref="JObject"/> representing the message.</returns>
-        public static JObject CreateMessageWithButton(string renderedMessage, string color, IEnumerable<MicrosoftTeamsSinkOptionsButton> buttons)
+        public static string CreateMessageWithButton(string renderedMessage, string color, IEnumerable<MicrosoftTeamsSinkOptionsButton> buttons)
         {
-            var potentialAction = new JArray();
-            foreach (var microsoftTeamsSinkOptionsButton in buttons)
+            using (MemoryStream ms = new MemoryStream())
             {
-                var b = new JObject
+                using (Utf8JsonWriter writer = new Utf8JsonWriter(ms))
                 {
-                    ["@type"] = "OpenUri",
-                    ["name"] = microsoftTeamsSinkOptionsButton.Name,
-                    ["targets"] = new JArray
+                    writer.WriteStartObject();
+                    writer.WriteString("@type", "MessageCard");
+                    writer.WriteString("@context", "http://schema.org/extensions");
+                    writer.WriteString("title", "Integration Tests");
+                    writer.WriteString("text", renderedMessage);
+                    writer.WriteString("themeColor", color);
+                    writer.WriteStartArray("potentialAction");
+                    foreach (var microsoftTeamsSinkOptionsButton in buttons)
                     {
-                        new JObject
-                        {
-                            ["uri"] = microsoftTeamsSinkOptionsButton.Uri,
-                            ["os"] = "default"
-                        }
+                        writer.WriteStartObject();
+                        writer.WriteString("@type", "OpenUri");
+                        writer.WriteString("name", microsoftTeamsSinkOptionsButton.Name);
+                        writer.WriteStartArray("targets");
+                        writer.WriteStartObject();
+                        writer.WriteString("uri", microsoftTeamsSinkOptionsButton.Uri);
+                        writer.WriteString("os", "default");
+                        writer.WriteEndObject();
+                        writer.WriteEndArray();
+                        writer.WriteEndObject();
                     }
-                };
-                potentialAction.Add(b);
+                    writer.WriteEndArray();
+                    writer.WriteEndObject();
+                }
+                return Encoding.UTF8.GetString(ms.ToArray());
             }
-
-            return new JObject
-            {
-                ["@type"] = "MessageCard",
-                ["@context"] = "http://schema.org/extensions",
-                ["title"] = "Integration Tests",
-                ["text"] = renderedMessage,
-                ["themeColor"] = color,
-                ["potentialAction"] = potentialAction
-            };
         }
     }
 }

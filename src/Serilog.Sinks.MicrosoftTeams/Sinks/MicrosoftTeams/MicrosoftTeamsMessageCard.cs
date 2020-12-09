@@ -11,7 +11,7 @@ namespace Serilog.Sinks.MicrosoftTeams
 {
     using System.Collections.Generic;
 
-    using Newtonsoft.Json;
+    using System.Text.Json.Serialization;
 
     /// <summary>
     /// The teams message card.
@@ -21,43 +21,43 @@ namespace Serilog.Sinks.MicrosoftTeams
         /// <summary>
         /// Gets the type of the card.
         /// </summary>
-        [JsonProperty("@type")]
+        [JsonPropertyName("@type")]
         public string Type { get; } = "MessageCard";
 
         /// <summary>
         /// Gets the context of the card.
         /// </summary>
-        [JsonProperty("@context")]
+        [JsonPropertyName("@context")]
         public string Context { get; } = "http://schema.org/extensions";
 
         /// <summary>
         /// Gets or sets the title of the card.
         /// </summary>
-        [JsonProperty("title")]
+        [JsonPropertyName("title")]
         public string Title { get; set; }
 
         /// <summary>
         /// Gets or sets the text of the card.
         /// </summary>
-        [JsonProperty("text")]
+        [JsonPropertyName("text")]
         public string Text { get; set; }
 
         /// <summary>
         /// Gets or sets the theme color of the card.
         /// </summary>
-        [JsonProperty("themeColor")]
+        [JsonPropertyName("themeColor")]
         public string Color { get; set; }
 
         /// <summary>
         /// Gets or sets the sections of the card.
         /// </summary>
-        [JsonProperty("sections")]
+        [JsonPropertyName("sections")]
         public IList<MicrosoftTeamsMessageSection> Sections { get; set; }
 
         /// <summary>
         /// Gets or sets the potential action buttons.
         /// </summary>
-        [JsonProperty("potentialAction")]
+        [JsonPropertyName("potentialAction")]
         public IList<MicrosoftTeamsMessageAction> PotentialActions { get; set; }
     }
 }

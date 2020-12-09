@@ -11,7 +11,7 @@ namespace Serilog.Sinks.MicrosoftTeams
 {
     using System.Collections.Generic;
 
-    using Newtonsoft.Json;
+    using System.Text.Json.Serialization;
 
     /// <summary>
     /// The message section.
@@ -21,13 +21,13 @@ namespace Serilog.Sinks.MicrosoftTeams
         /// <summary>
         /// Gets or sets message section title.
         /// </summary>
-        [JsonProperty("title")]
+        [JsonPropertyName("title")]
         public string Title { get; set; }
 
         /// <summary>
         /// Gets or sets message section facts.
         /// </summary>
-        [JsonProperty("facts")]
+        [JsonPropertyName("facts")]
         public IList<MicrosoftTeamsMessageFact> Facts { get; set; }
     }
 }

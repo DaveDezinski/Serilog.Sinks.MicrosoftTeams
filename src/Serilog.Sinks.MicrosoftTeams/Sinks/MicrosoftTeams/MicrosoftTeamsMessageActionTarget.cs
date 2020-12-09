@@ -9,7 +9,7 @@
 
 namespace Serilog.Sinks.MicrosoftTeams
 {
-    using Newtonsoft.Json;
+    using System.Text.Json.Serialization;
 
     /// <summary>
     /// The Microsoft Teams message action target class.
@@ -17,9 +17,26 @@ namespace Serilog.Sinks.MicrosoftTeams
     public class MicrosoftTeamsMessageActionTarget
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="MicrosoftTeamsMessageActionTarget"/> class.
+        /// </summary>
+        /// <param name="uri">The URI.</param>
+        /// <param name="operatingSystem">The operating system.</param>
+        public MicrosoftTeamsMessageActionTarget(string uri, string operatingSystem = "default")
+        {
+            this.OperatingSystem = operatingSystem;
+            this.Uri = uri;
+        }
+
+        /// <summary>
+        /// Gets or sets the URI.
+        /// </summary>
+        [JsonPropertyName("uri")]
+        public string Uri { get; set; }
+
+        /// <summary>
         /// Gets or sets the operating system.
         /// </summary>
-        [JsonProperty("os")]
+        [JsonPropertyName("os")]
         public string OperatingSystem { get; set; }
     }
 }

@@ -19,7 +19,8 @@ namespace Serilog.Sinks.MicrosoftTeams
     using System.Text;
     using System.Threading.Tasks;
 
-    using Newtonsoft.Json;
+    using System.Text.Json;
+    using System.Text.Json.Serialization;
 
     using Serilog.Debugging;
     using Serilog.Events;
@@ -35,9 +36,9 @@ namespace Serilog.Sinks.MicrosoftTeams
         /// <summary>
         /// The json serializer settings.
         /// </summary>
-        private static readonly JsonSerializerSettings JsonSerializerSettings = new JsonSerializerSettings
+        private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
         {
-            NullValueHandling = NullValueHandling.Ignore
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
 
         /// <summary>
@@ -184,7 +185,7 @@ namespace Serilog.Sinks.MicrosoftTeams
                 try
                 {
                     var message = this.CreateMessage(logEvent);
-                    var json = JsonConvert.SerializeObject(message, JsonSerializerSettings);
+                    var json = JsonSerializer.Serialize(message, JsonSerializerOptions);
                     var result = await this.client.PostAsync(this.options.WebHookUri, new StringContent(json, Encoding.UTF8, "application/json")).ConfigureAwait(false);
 
                     if (!result.IsSuccessStatusCode)
@@ -244,7 +245,7 @@ namespace Serilog.Sinks.MicrosoftTeams
             }
 
             request.PotentialActions = new List<MicrosoftTeamsMessageAction>();
-            this.options.Buttons.ToList().ForEach(btn => request.PotentialActions.Add(new MicrosoftTeamsMessageAction("OpenUri", btn.Name, new MicrosoftTeamsMessageActionTargetUri(btn.Uri))));
+            this.options.Buttons.ToList().ForEach(btn => request.PotentialActions.Add(new MicrosoftTeamsMessageAction("OpenUri", btn.Name, new MicrosoftTeamsMessageActionTarget(btn.Uri))));
             return request;
         }
 

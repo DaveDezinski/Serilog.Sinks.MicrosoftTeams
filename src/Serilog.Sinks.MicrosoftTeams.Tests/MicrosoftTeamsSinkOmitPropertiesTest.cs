@@ -49,7 +49,7 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
             this.logger.Debug("Message text {prop}", 42);
 
             var actualMessages = await sentMessagesTask.ConfigureAwait(false);
-            var actualMessage = actualMessages[0];
+            var actualMessage = actualMessages[0].GetRawText();
             var expectedMessage = TestHelper.CreateMessage("Message text 42", "777777");
             actualMessage.ShouldBe(expectedMessage);
         }

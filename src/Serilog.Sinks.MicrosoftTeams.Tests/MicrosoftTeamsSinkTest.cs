@@ -79,9 +79,10 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
             for (var i = 0; i < MessageCount; i++)
             {
                 // ReSharper disable PossibleNullReferenceException
-                var occurredOn = actualMessages[i]["sections"][0]["facts"].Last.Last.Last.ToString();
+                var occurredOn = actualMessages[i].GetProperty("sections")[0].GetProperty("facts")[3].GetProperty("value").GetString();
                 var expectedMessage = TestHelper.CreateMessage(templates[i], renderedMessages[i], logEventLevel, color, i, occurredOn);
-                actualMessages[i].ShouldBe(expectedMessage);
+                var actualMessage = actualMessages[i].GetRawText();
+                actualMessage.ShouldBe(expectedMessage);
             }
         }
     }

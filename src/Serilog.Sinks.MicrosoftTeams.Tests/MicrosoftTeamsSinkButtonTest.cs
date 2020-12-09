@@ -69,7 +69,7 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
 
             // Assert
             var actualMessages = await sentMessagesTask.ConfigureAwait(false);
-            var actualMessage = actualMessages[0];
+            var actualMessage = actualMessages[0].GetRawText();
             var expectedMessage = buttonCount == 0 ? TestHelper.CreateMessage("Message text 42", "777777") : TestHelper.CreateMessageWithButton("Message text 42", "777777", this.buttons.Take(buttonCount));
             actualMessage.ShouldBe(expectedMessage);
         }

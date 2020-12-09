@@ -10,7 +10,7 @@
 namespace Serilog.Sinks.MicrosoftTeams
 {
     using System.Collections.Generic;
-    using Newtonsoft.Json;
+    using System.Text.Json.Serialization;
 
     /// <summary>
     /// The Microsoft Teams message action class.
@@ -33,19 +33,19 @@ namespace Serilog.Sinks.MicrosoftTeams
         /// <summary>
         /// Gets or sets the type.
         /// </summary>
-        [JsonProperty("@type")]
+        [JsonPropertyName("@type")]
         public string Type { get; set; }
 
         /// <summary>
         /// Gets or sets the name.
         /// </summary>
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
         /// <summary>
         /// Gets or sets the targets.
         /// </summary>
-        [JsonProperty("targets")]
+        [JsonPropertyName("targets")]
         public IList<MicrosoftTeamsMessageActionTarget> Targets { get; set; }
     }
 }

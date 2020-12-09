@@ -9,7 +9,7 @@
 
 namespace Serilog.Sinks.MicrosoftTeams
 {
-    using Newtonsoft.Json;
+    using System.Text.Json.Serialization;
 
     /// <summary>
     /// The message card fact.
@@ -19,13 +19,13 @@ namespace Serilog.Sinks.MicrosoftTeams
         /// <summary>
         /// Gets or sets the name of the card fact.
         /// </summary>
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
         /// <summary>
         /// Gets or sets the value of the card fact.
         /// </summary>
-        [JsonProperty("value")]
+        [JsonPropertyName("value")]
         public string Value { get; set; }
     }
 }
