@@ -96,17 +96,21 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
             settings.UrlPrefixes.Add(TestWebHook);
 
             var result = new List<JsonElement>();
-            using var listener = new WebListener(settings);
-            listener.Start();
-
-            while (count-- > 0)
+            using (var listener = new WebListener(settings))
             {
-                using var requestContext = await listener.AcceptAsync().WithTimeout(TimeSpan.FromSeconds(6)).ConfigureAwait(false);
-                var body = ReadBodyStream(requestContext.Request.Body);
-                result.Add(body);
-                requestContext.Response.StatusCode = 204;
-            }
+                listener.Start();
 
+                while (count-- > 0)
+                {
+                    using (var requestContext = await listener.AcceptAsync().WithTimeout(TimeSpan.FromSeconds(6)).ConfigureAwait(false))
+                    {
+                        var body = ReadBodyStream(requestContext.Request.Body);
+                        result.Add(body);
+                        requestContext.Response.StatusCode = 204;
+                    }
+                }
+            }
+            
             return result;
         }
 
@@ -117,9 +121,11 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
         /// <returns>A <see cref="JsonElement"/> from the body stream.</returns>
         private static JsonElement ReadBodyStream(Stream stream)
         {
-            using var reader = new StreamReader(stream, Encoding.UTF8);
-            var json = reader.ReadToEnd();
-            return JsonSerializer.Deserialize<JsonElement>(json);
+            using (var reader = new StreamReader(stream, Encoding.UTF8))
+            {
+                var json = reader.ReadToEnd();
+                return JsonSerializer.Deserialize<JsonElement>(json);
+            }
         }
 
         /// <summary>
