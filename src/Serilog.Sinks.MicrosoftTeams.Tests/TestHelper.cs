@@ -114,7 +114,7 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
         /// Reads the body stream.
         /// </summary>
         /// <param name="stream">The body stream.</param>
-        /// <returns>A <see cref="JObject"/> from the body stream.</returns>
+        /// <returns>A <see cref="JsonElement"/> from the body stream.</returns>
         private static JsonElement ReadBodyStream(Stream stream)
         {
             using var reader = new StreamReader(stream, Encoding.UTF8);
@@ -131,7 +131,7 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
         /// <param name="color">The color.</param>
         /// <param name="counter">The counter.</param>
         /// <param name="occurredOn">The occurred on date.</param>
-        /// <returns>A <see cref="JObject"/> from the message.</returns>
+        /// <returns>A <see cref="JsonElement"/> from the message.</returns>
         public static string CreateMessage(string template, string renderedMessage, LogEventLevel logEventLevel,
             string color, int counter, string occurredOn)
         {
@@ -180,7 +180,7 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
         /// </summary>
         /// <param name="renderedMessage">The rendered message.</param>
         /// <param name="color">The color.</param>
-        /// <returns>A new <see cref="JObject"/> representing the message.</returns>
+        /// <returns>A new <see cref="JsonElement"/> representing the message.</returns>
         public static string CreateMessage(string renderedMessage, string color)
         {
             using (MemoryStream ms = new MemoryStream())
@@ -205,7 +205,7 @@ namespace Serilog.Sinks.MicrosoftTeams.Tests
         /// <param name="renderedMessage">The rendered message.</param>
         /// <param name="color">The color.</param>
         /// <param name="buttons">The buttons.</param>
-        /// <returns>A new <see cref="JObject"/> representing the message.</returns>
+        /// <returns>A new <see cref="JsonElement"/> representing the message.</returns>
         public static string CreateMessageWithButton(string renderedMessage, string color, IEnumerable<MicrosoftTeamsSinkOptionsButton> buttons)
         {
             using (MemoryStream ms = new MemoryStream())
