@@ -287,13 +287,13 @@ namespace Serilog.Sinks.MicrosoftTeams
                 yield return new MicrosoftTeamsMessageFact
                 {
                     Name = "First occurrence",
-                    Value = logEvent.FirstOccurrence.ToString("dd.MM.yyyy HH:mm:sszzz", this.options.FormatProvider)
+                    Value = logEvent.FirstOccurrence.ToString("G", this.options.FormatProvider)
                 };
 
                 yield return new MicrosoftTeamsMessageFact
                 {
                     Name = "Last occurrence",
-                    Value = logEvent.LastOccurrence.ToString("dd.MM.yyyy HH:mm:sszzz", this.options.FormatProvider)
+                    Value = logEvent.LastOccurrence.ToString("G", this.options.FormatProvider)
                 };
             }
             else
@@ -301,7 +301,7 @@ namespace Serilog.Sinks.MicrosoftTeams
                 yield return new MicrosoftTeamsMessageFact
                 {
                     Name = "Occurred on",
-                    Value = logEvent.FirstOccurrence.ToString("dd.MM.yyyy HH:mm:sszzz", this.options.FormatProvider)
+                    Value = logEvent.FirstOccurrence.ToString("G", this.options.FormatProvider)
                 };
             }
         }
